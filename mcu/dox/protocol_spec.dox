@@ -1,0 +1,226 @@
+/**
+ * @page protocol_spec Protocol Specification
+ *
+ * @tableofcontents
+ *
+ * @section proto_wire UART Wire Format
+ *
+ * Every UART frame on this system (OBC, RPi, DBG) follows the same
+ * structure:
+ *
+ * @code
+ *  Byte:  [0]       [1]      [2]       [3..N+2]  [N+3]    [N+4]    [N+5]
+ *         UNIT_ID   CMD_ID   DATA_LEN  payload   CRC_MSB  CRC_LSB  STOP
+ * @endcode
+ *
+ * | Field     | Size    | Description                                     |
+ * |-----------|---------|-------------------------------------------------|
+ * | UNIT_ID   | 1 byte  | Sender ID: `0x1C` (OBC) or `0x3E` (RPi).        |
+ * | CMD_ID    | 1 byte  | Command identifier (see command tables below).  |
+ * | DATA_LEN  | 1 byte  | Payload length N (0 .. 39).                     |
+ * | payload   | N bytes | Command-specific data.                          |
+ * | CRC_MSB   | 1 byte  | CRC-16 CCITT high byte.                         |
+ * | CRC_LSB   | 1 byte  | CRC-16 CCITT low byte.                          |
+ * | STOP      | 1 byte  | End-of-frame delimiter: `0x0A`.                 |
+ *
+ * Minimum frame size: **6 bytes** (header + CRC + stop, no payload).
+ * Maximum frame size: **45 bytes** (6 + 39 payload).
+ *
+ * @section proto_crc CRC Algorithm
+ *
+ * CRC-16 CCITT with seed `0xFFFF`, computed over `UNIT_ID` through
+ * the last payload byte (i.e., everything except CRC and STOP).
+ *
+ * - Polynomial: `0x1021` (reflected table lookup, 256-entry).
+ * - The CRC is transmitted MSB-first.
+ * - On reception, the CRC is recalculated and compared against the
+ *   embedded value; mismatches trigger a NACK.
+ *
+ * @see crc.c, calculate_crc, extract_crc
+ *
+ * @section proto_ack ACK / NACK Flow
+ *
+ * **ACK** -- a minimal frame echoing the peer's last UNIT_ID and
+ * CMD_ID with zero payload. Detected by comparing the received
+ * header against @ref Dataframe_s::tx_tracker.
+ *
+ * **NACK** -- two signatures are recognised:
+ * 1. The first payload byte equals the NACK error code.
+ * 2. The CMD_ID itself is the NACK code (legacy peers).
+ *
+ * @see is_ack, is_nack, send_nack
+ *
+ * @section proto_obc OBC Command Set
+ *
+ * @subsection proto_obc_rx OBC -> ICU (Reception)
+ *
+ * Commands dispatched by @ref obc_task_select. Enum: @ref ObcRxCommand_e.
+ *
+ * | Enum             | Hex    | Payload           | Handler                   |
+ * |------------------|--------|-------------------|---------------------------|
+ * | PWR_RPI_ON       | `0x40` | --                | @ref rpi_on               |
+ * | PWR_RPI_OFF      | `0x41` | --                | @ref rpi_off              |
+ * | REQ_RPI_OFF      | `0x42` | --                | @ref rpi_request_poweroff |
+ * | REQ_RPI_RESET    | `0x43` | --                | @ref rpi_request_reboot   |
+ * | REQ_RPI_PHCAP    | `0x44` | [quantity]        | @ref rpi_request_capture  |
+ * | REQ_RPI_HQIMG    | `0x45` | [code]            | @ref rpi_request_image    |
+ * | REQ_RPI_LQIMG    | `0x46` | [code]            | @ref rpi_request_image    |
+ * | REQ_RPI_REPO     | `0x47` | --                | @ref rpi_report_request   |
+ * | WRI_OBC_PTR      | `0x48` | [dst + size]      | @ref obc_write_pointer    |
+ * | WRI_OBC_META     | `0x49` | [dst + meta + sz] | @ref obc_write_meta       |
+ * | WRI_OBC_SRC      | `0x4A` | [dst + src + sz]  | @ref obc_write_from_to    |
+ * | DEL_OBC_ADDR     | `0x4B` | [address]         | @ref delete_address       |
+ * | DEL_OBC_META     | `0x4C` | [meta]            | @ref delete_metadata      |
+ * | DEL_OBC_RANGE    | `0x4D` | [from, to]        | @ref delete_range         |
+ *
+ * @subsection proto_obc_tx ICU -> OBC (Transmission)
+ *
+ * Enum: @ref ObcTxCommand_e.
+ *
+ * | Enum         | Hex    | Purpose                                       |
+ * |--------------|--------|-----------------------------------------------|
+ * | DL_REPO      | `0x30` | 5-byte compacted repo for downlink.           |
+ * | ASSERT_WRI   | `0x31` | Successful write-to-OBC acknowledgement.      |
+ * | ASSERT_DEL   | `0x32` | Successful delete acknowledgement.            |
+ * | ASSERT_PWROFF| `0x33` | ICU ready to be powered off.                  |
+ * | NAK_REQ      | `0x34` | Write or delete process failed.               |
+ *
+ * @section proto_rpi RPi Command Set
+ *
+ * @subsection proto_rpi_rx RPi -> ICU (Reception)
+ *
+ * Commands dispatched by @ref rpi_task_select. Enum: @ref RpiRxCommand_e.
+ *
+ * | Enum      | Hex    | Payload              | Handler                 |
+ * |-----------|--------|----------------------|-------------------------|
+ * | WR_REQ    | `0x40` | [4-byte image size]  | @ref check_flash_space  |
+ * | WR_BEG    | `0x41` | --                   | @ref flash_in_use       |
+ * | WR_END    | `0x42` | [final addr + size]  | @ref update_index       |
+ * | BOOT      | `0x43` | --                   | @ref task_for_rpi       |
+ * | PWROFF    | `0x44` | --                   | @ref poweroff_countdown |
+ * | DB_REPORT | `0x45` | [6-byte report]      | @ref report_to_downlink |
+ *
+ * @subsection proto_rpi_tx ICU -> RPi (Transmission)
+ *
+ * Enum: @ref RpiTxCommand_e.
+ *
+ * | Enum      | Hex    | Purpose                                       |
+ * |-----------|--------|-----------------------------------------------|
+ * | ACC_OP    | `0x30` | Accept operation (address in payload).        |
+ * | DEC_OP    | `0x31` | Decline operation (no space / error).         |
+ * | CAM_ON    | `0x32` | Trigger camera capture.                       |
+ * | PWROFF_RPI| `0x33` | Order RPi to power off.                       |
+ * | REBOOT_IT | `0x34` | Order RPi to reboot.                          |
+ * | REPORT_DL | `0x35` | Request database report.                      |
+ * | THUMB     | `0x36` | Request thumbnail image.                      |
+ * | FULL_HD   | `0x37` | Request full-resolution image.                |
+ *
+ * @section proto_dbg Debug Command Set (DEBUG_MODE only)
+ *
+ * Enum: @ref DbgRxCommand_e. Superset of the OBC set -- every OBC
+ * command can be issued from the serial terminal, plus these extras:
+ *
+ * | Enum             | Hex    | Purpose                                  |
+ * |------------------|--------|------------------------------------------|
+ * | TEST_RPI_FRAME   | `0x50` | Forward a test frame to RPi.             |
+ * | DUMP_LOG_FROM    | `0x51` | Read and dump flash [addr + size].       |
+ * | SHOW_YA_BONES    | `0x52` | Dump index map + index entries.          |
+ * | DUMP_LOG_JPEGS   | `0x53` | Dump all stored images as HEX.           |
+ * | DUMMY_DUMP       | `0x54` | CPU-blocking write test [size].          |
+ * | IAMSPEED         | `0x55` | DMA pipeline write test [src+dst+size].  |
+ * | META_DUMP_ME     | `0x56` | Dump all images' EXIF metadata.          |
+ * | RPI_DB_REPORT    | `0x57` | Request RPi report.                      |
+ * | RUBBER_ON_DELETE | `0x58` | Tiered erase [from, to].                 |
+ * | RAW_DELETE       | `0x59` | Raw single-sector erase [cmd + addr].    |
+ *
+ * @section proto_uplink Uplink Command Reference
+ *
+ * This section provides an at-a-glance view of every command that can be
+ * uplinked from Ground Control through the OBC to the ICU, what it
+ * triggers, and where the action lands.
+ *
+ * @subsection proto_uplink_routing Command Routing Overview
+ *
+ * All uplink commands enter the ICU through the OBC UART and are
+ * dispatched by @ref obc_task_select. From there, each command targets
+ * one of three subsystems:
+ *
+ * @dot
+ * digraph uplink_routing {
+ *     rankdir=LR;
+ *     node [shape=box, style="rounded,filled", fillcolor="#e8e8e8",
+ *           fontname="monospace", fontsize=10];
+ *     edge [fontname="monospace", fontsize=9];
+ *
+ *     Ground [label="Ground\nControl", shape=ellipse, fillcolor="#c8daf8"];
+ *     OBC    [label="OBC",            shape=ellipse, fillcolor="#c8daf8"];
+ *     ICU    [label="ICU\nparser",     fillcolor="#fffacd"];
+ *
+ *     subgraph cluster_rpi {
+ *         label="RPi Subsystem"; style=dashed; color=grey;
+ *         RPi_Pwr [label="RPi Power\nPWR_RPI_ON\nPWR_RPI_OFF"];
+ *         RPi_Req [label="RPi Requests\nREQ_RPI_OFF\nREQ_RPI_RESET\nREQ_RPI_PHCAP\nREQ_RPI_HQIMG\nREQ_RPI_LQIMG\nREQ_RPI_REPO"];
+ *     }
+ *
+ *     subgraph cluster_flash {
+ *         label="Flash Storage"; style=dashed; color=grey;
+ *         Flash_Wri [label="Write Ops\nWRI_OBC_PTR\nWRI_OBC_META\nWRI_OBC_SRC"];
+ *         Flash_Del [label="Delete Ops\nDEL_OBC_ADDR\nDEL_OBC_META\nDEL_OBC_RANGE"];
+ *     }
+ *
+ *     Ground -> OBC [label="uplink"];
+ *     OBC    -> ICU [label="UART\n0x1C frame"];
+ *     ICU    -> RPi_Pwr  [label="0x40..0x41"];
+ *     ICU    -> RPi_Req  [label="0x42..0x47"];
+ *     ICU    -> Flash_Wri [label="0x48..0x4A"];
+ *     ICU    -> Flash_Del [label="0x4B..0x4D"];
+ * }
+ * @enddot
+ *
+ * @subsection proto_uplink_table Command Quick-Reference
+ *
+ * | Category       | Command        | Hex    | Parameters        | Effect                                        | Handler                   |
+ * |----------------|----------------|--------|-------------------|-----------------------------------------------|---------------------------|
+ * | **RPi Power**  | PWR_RPI_ON     | `0x40` | --                | Supply 5 V to RPi                             | @ref rpi_on               |
+ * |                | PWR_RPI_OFF    | `0x41` | --                | Cut RPi power supply                          | @ref rpi_off              |
+ * | **RPi Request**| REQ_RPI_OFF    | `0x42` | --                | Request RPi `sudo poweroff`                   | @ref rpi_request_poweroff |
+ * |                | REQ_RPI_RESET  | `0x43` | --                | Request RPi `sudo reboot`                     | @ref rpi_request_reboot   |
+ * |                | REQ_RPI_PHCAP  | `0x44` | [quantity]        | Request photo capture(s)                      | @ref rpi_request_capture  |
+ * |                | REQ_RPI_HQIMG  | `0x45` | [code]            | Request full-resolution image                 | @ref rpi_request_image    |
+ * |                | REQ_RPI_LQIMG  | `0x46` | [code]            | Request thumbnail image                       | @ref rpi_request_image    |
+ * |                | REQ_RPI_REPO   | `0x47` | --                | Request RPi database report for DL            | @ref rpi_report_request   |
+ * | **Flash Write**| WRI_OBC_PTR    | `0x48` | [dst + size]      | Write from last address pointer to OBC FM     | @ref obc_write_pointer    |
+ * |                | WRI_OBC_META   | `0x49` | [dst + meta + sz] | Write from metadata-matched source to OBC FM  | @ref obc_write_meta       |
+ * |                | WRI_OBC_SRC    | `0x4A` | [dst + src + sz]  | Write from explicit source address to OBC FM  | @ref obc_write_from_to    |
+ * | **Deletion**   | DEL_OBC_ADDR   | `0x4B` | [address]         | Delete data by single address lookup          | @ref delete_address       |
+ * |                | DEL_OBC_META   | `0x4C` | [meta]            | Delete data by metadata search                | @ref delete_metadata      |
+ * |                | DEL_OBC_RANGE  | `0x4D` | [from, to]        | Delete data by explicit address range         | @ref delete_range         |
+ *
+ * @subsection proto_uplink_flow Typical Uplink Sequence
+ *
+ * A representative write-to-flash sequence showing the full handshake
+ * from Ground through OBC to ICU and back:
+ *
+ * @msc
+ * Ground, OBC, ICU, Flash;
+ *
+ * Ground -> OBC   [label="uplink WRI_OBC_PTR"];
+ * OBC    -> ICU   [label="UART frame [0x1C, 0x48, ...]"];
+ * ICU    -> ICU   [label="CRC check + parse"];
+ * ICU    -> Flash [label="obc_write_pointer()"];
+ * Flash  -> ICU   [label="write complete"];
+ * ICU    -> OBC   [label="ASSERT_WRI (0x31)"];
+ * OBC    -> Ground [label="downlink ACK"];
+ *
+ * ---              [label="on failure"];
+ *
+ * ICU    -> OBC   [label="NAK_REQ (0x34)"];
+ * OBC    -> Ground [label="downlink NACK"];
+ * @endmsc
+ *
+ * @note For delete commands, the success response is @ref ASSERT_DEL
+ *       (`0x32`) instead of ASSERT_WRI. The failure path is always
+ *       @ref NAK_REQ.
+ *
+ * @see ObcRxCommand_e, ObcTxCommand_e, obc_task_select
+ */

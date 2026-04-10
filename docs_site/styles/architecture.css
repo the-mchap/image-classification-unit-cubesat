@@ -1,0 +1,457 @@
+/* === Architecture — Grid layouts === */
+#hardware .diagram-container {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+#operations .diagram-container {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* === Hardware Diagram — Base === */
+.hw-diagram {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* === Hardware Diagram — Component boxes === */
+.hw-diagram .component-box {
+  cursor: pointer;
+  transition: filter var(--transition);
+}
+
+.hw-diagram .component-box:hover,
+.hw-diagram .component-box.active {
+  filter: brightness(1.3);
+}
+
+.hw-diagram .component-bg {
+  rx: 10;
+  ry: 10;
+  stroke-width: 1.5;
+  transition: stroke-width var(--transition);
+}
+
+.hw-diagram .component-box:hover .component-bg,
+.hw-diagram .component-box.active .component-bg {
+  stroke-width: 2;
+}
+
+/* === Hardware Diagram — Component glow === */
+.hw-diagram .component-mcu {
+  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.5));
+}
+
+.hw-diagram .component-mcu:hover,
+.hw-diagram .component-mcu.active {
+  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.5)) brightness(1.3);
+}
+
+.hw-diagram .component-sbc {
+  filter: drop-shadow(0 0 8px rgba(236, 72, 153, 0.5));
+}
+
+.hw-diagram .component-sbc:hover,
+.hw-diagram .component-sbc.active {
+  filter: drop-shadow(0 0 8px rgba(236, 72, 153, 0.5)) brightness(1.3);
+}
+
+/* === Hardware Diagram — ICU boundary === */
+.hw-diagram .icu-boundary {
+  fill: rgba(168, 85, 247, 0.03);
+  stroke: rgba(168, 85, 247, 0.2);
+  stroke-width: 1.5;
+  stroke-dasharray: 8 4;
+  rx: 16;
+  ry: 16;
+  filter: drop-shadow(0 0 4px rgba(168, 85, 247, 0.25));
+}
+
+/* === Hardware Diagram — Component fills === */
+.hw-diagram .mcu-bg {
+  fill: rgba(168, 85, 247, 0.1);
+  stroke: var(--purple);
+}
+
+.hw-diagram .sbc-bg {
+  fill: rgba(236, 72, 153, 0.1);
+  stroke: var(--pink);
+}
+
+.hw-diagram .cam-bg {
+  fill: rgba(244, 114, 182, 0.08);
+  stroke: var(--pink-bright);
+  stroke-width: 1;
+}
+
+.hw-diagram .earth-bg {
+  fill: rgba(107, 33, 168, 0.1);
+  stroke: var(--purple-dim);
+}
+
+/* === Hardware Diagram — Labels === */
+.hw-diagram .label-main {
+  fill: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.hw-diagram .label-sub {
+  fill: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-anchor: middle;
+}
+
+.hw-diagram .label-tag {
+  fill: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-anchor: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.hw-diagram .label-sm.label-main {
+  font-size: 12px;
+}
+
+.hw-diagram .label-sm.label-sub {
+  font-size: 8px;
+}
+
+/* === Hardware Diagram — Connection lines === */
+.hw-diagram .conn-line {
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.hw-diagram .conn-purple {
+  stroke: var(--purple);
+  opacity: 0.5;
+}
+
+.hw-diagram .conn-pink {
+  stroke: var(--pink);
+  opacity: 0.4;
+}
+
+.hw-diagram .conn-dim {
+  stroke: var(--purple-dim);
+  opacity: 0.4;
+  stroke-dasharray: 6 4;
+}
+
+.hw-diagram .conn-label {
+  fill: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-anchor: middle;
+  letter-spacing: 0.05em;
+}
+
+/* === Hardware Diagram — Flow particles (JS-created) === */
+.hw-diagram .flow-particle {
+  r: 2.5;
+  opacity: 0;
+}
+
+.hw-diagram .flow-purple {
+  fill: var(--purple-bright);
+}
+
+.hw-diagram .flow-pink {
+  fill: var(--pink-bright);
+}
+
+/* === Hardware Diagram — Power indicators === */
+.hw-diagram .power-dot {
+  r: 4;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.hw-diagram .power-dot-mcu {
+  fill: #4ade80;
+  opacity: 0.8;
+}
+
+.hw-diagram .power-dot-sbc {
+  fill: #facc15;
+  opacity: 0.8;
+  animation-delay: 0.3s;
+}
+
+/* === Hardware Diagram — Camera lens === */
+.hw-diagram .lens-outer {
+  r: 12;
+  fill: none;
+  stroke: var(--pink-bright);
+  stroke-width: 1;
+  opacity: 0.6;
+}
+
+.hw-diagram .lens-inner {
+  r: 6;
+  fill: rgba(244, 114, 182, 0.2);
+  stroke: var(--pink-bright);
+  stroke-width: 0.5;
+}
+
+/* === Hardware Diagram — Function badges === */
+.hw-diagram .badge {
+  opacity: 0.7;
+}
+
+.hw-diagram .badge-bg {
+  rx: 4;
+  stroke-width: 0.5;
+}
+
+.hw-diagram .badge-pink .badge-bg {
+  fill: rgba(236, 72, 153, 0.15);
+  stroke: var(--pink);
+}
+
+.hw-diagram .badge-purple .badge-bg {
+  fill: rgba(168, 85, 247, 0.15);
+  stroke: var(--purple);
+}
+
+.hw-diagram .badge-label {
+  text-anchor: middle;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+}
+
+.hw-diagram .badge-pink .badge-label {
+  fill: var(--pink-bright);
+}
+
+.hw-diagram .badge-purple .badge-label {
+  fill: var(--purple-bright);
+}
+
+/* === Info Panel (grid cell, replaces floating tooltip) === */
+.info-panel {
+  background: rgba(17, 13, 27, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(168, 85, 247, 0.15);
+  border-radius: 8px;
+  padding: 1.25rem;
+  min-height: 180px;
+  transition: border-color var(--transition);
+}
+
+.info-panel.active {
+  border-color: rgba(168, 85, 247, 0.3);
+}
+
+.info-panel .info-prompt {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.info-panel .info-content {
+  display: none;
+}
+
+.info-panel.active .info-prompt {
+  display: none;
+}
+
+.info-panel.active .info-content {
+  display: block;
+  animation: fadeUp 0.3s ease-out both;
+}
+
+.info-panel .info-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  background: var(--gradient-main);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.info-panel .info-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 0.75rem;
+}
+
+.info-panel .info-specs {
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(168, 85, 247, 0.15);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* === State Machine Diagram — Base === */
+.sm-diagram {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* === State Machine — State boxes === */
+.sm-diagram .state-box {
+  cursor: pointer;
+  transition: filter var(--transition);
+}
+
+.sm-diagram .state-box:hover,
+.sm-diagram .state-box.active {
+  filter: brightness(1.3);
+}
+
+.sm-diagram .state-bg {
+  rx: 12;
+  ry: 12;
+  stroke-width: 1.5;
+  transition: stroke-width var(--transition);
+}
+
+.sm-diagram .state-box:hover .state-bg,
+.sm-diagram .state-box.active .state-bg {
+  stroke-width: 2;
+}
+
+.sm-diagram .state-bg-primary {
+  fill: rgba(168, 85, 247, 0.15);
+  stroke: var(--purple);
+}
+
+.sm-diagram .state-bg-pink {
+  fill: rgba(236, 72, 153, 0.1);
+  stroke: var(--pink);
+}
+
+.sm-diagram .state-bg-accent {
+  fill: rgba(168, 85, 247, 0.08);
+  stroke: var(--purple-dim);
+}
+
+.sm-diagram .state-idle {
+  filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.5));
+}
+
+.sm-diagram .state-idle:hover,
+.sm-diagram .state-idle.active {
+  filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.5)) brightness(1.3);
+}
+
+/* === State Machine — Labels === */
+.sm-diagram .state-label {
+  fill: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  text-anchor: middle;
+  letter-spacing: 0.08em;
+}
+
+.sm-diagram .state-sub {
+  fill: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-anchor: middle;
+}
+
+/* === State Machine — Transitions === */
+.sm-diagram .transition-line {
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.sm-diagram .transition-cmd {
+  stroke: var(--purple);
+  opacity: 0.6;
+  marker-end: url(#sm-arrow-cmd);
+}
+
+.sm-diagram .transition-done {
+  stroke: var(--purple-dim);
+  opacity: 0.3;
+  stroke-dasharray: 6 4;
+  marker-end: url(#sm-arrow-done);
+}
+
+.sm-diagram .transition-label {
+  fill: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-anchor: middle;
+  letter-spacing: 0.04em;
+}
+
+.sm-diagram .transition-label-done {
+  fill: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  text-anchor: middle;
+  font-style: italic;
+}
+
+/* === State Machine — Arrow markers === */
+.sm-diagram .arrow-fill-cmd {
+  fill: var(--purple);
+  opacity: 0.6;
+}
+
+.sm-diagram .arrow-fill-done {
+  fill: var(--purple-dim);
+  opacity: 0.3;
+}
+
+/* === State Machine — Flow particles (JS-created) === */
+.sm-diagram .flow-particle {
+  r: 2.5;
+  opacity: 0;
+}
+
+.sm-diagram .flow-purple {
+  fill: var(--purple-bright);
+}
+
+/* === Animations === */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+  #hardware .diagram-container,
+  #operations .diagram-container {
+    grid-template-columns: 1fr;
+  }
+
+  /* Panel always below diagram on mobile */
+  .info-panel {
+    order: 2;
+    min-height: auto;
+  }
+}

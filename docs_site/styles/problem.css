@@ -1,0 +1,236 @@
+/* === Problem Diagram — Base === */
+.problem-diagram {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* === Problem Diagram — Earth === */
+.problem-diagram .earth-grad-core {
+  stop-color: #1a2555;
+}
+
+.problem-diagram .earth-grad-edge {
+  stop-color: #0d1535;
+}
+
+.problem-diagram .atmo-grad-inner {
+  stop-color: transparent;
+}
+
+.problem-diagram .atmo-grad-outer {
+  stop-color: rgba(168, 85, 247, 0.12);
+}
+
+.problem-diagram .earth-body {
+  fill: url(#earth-grad);
+}
+
+.problem-diagram .earth-atmo {
+  fill: url(#earth-atmo-grad);
+}
+
+.problem-diagram .earth-land {
+  fill: #2d5545;
+  opacity: 0.5;
+}
+
+/* === Problem Diagram — Orbit === */
+.problem-diagram .orbit-ring {
+  fill: none;
+  stroke: var(--purple-dim);
+  stroke-width: 1;
+  stroke-dasharray: 8 6;
+  opacity: 0.25;
+}
+
+/* === Problem Diagram — Data link === */
+.problem-diagram .data-link {
+  stroke: var(--purple-dim);
+  stroke-width: 0.8;
+  stroke-dasharray: 4 6;
+  opacity: 0.2;
+}
+
+/* === Problem Diagram — Satellite === */
+.problem-diagram .satellite-group {
+  filter: drop-shadow(0 0 4px rgba(168, 85, 247, 0.3));
+}
+
+.problem-diagram .sat-body {
+  fill: #1a1030;
+  stroke: var(--purple);
+  stroke-width: 1;
+}
+
+.problem-diagram .sat-panel {
+  fill: #1a1545;
+  stroke: var(--purple-dim);
+  stroke-width: 0.8;
+}
+
+.problem-diagram .sat-antenna {
+  stroke: var(--text-dim);
+  stroke-width: 1;
+}
+
+.problem-diagram .sat-antenna-tip {
+  fill: var(--purple);
+}
+
+.problem-diagram .sat-lens {
+  fill: rgba(236, 72, 153, 0.3);
+  stroke: var(--pink);
+  stroke-width: 0.8;
+}
+
+.problem-diagram .sat-flash {
+  fill: rgba(200, 180, 255, 0.6);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.problem-diagram .sat-flash.flash-active {
+  animation: camera-flash 0.35s ease-out forwards;
+}
+
+/* === Problem Diagram — Image squares (JS-created) === */
+.problem-diagram .img-square {
+  width: 8px;
+  height: 8px;
+  rx: 1;
+  fill: var(--pink);
+  opacity: 0;
+}
+
+.problem-diagram .img-delivered {
+  fill: var(--purple-bright);
+}
+
+/* === Problem Diagram — Stars (JS-created) === */
+.problem-diagram .star {
+  fill: var(--text-dim);
+  opacity: 0.3;
+  animation: twinkle 3s ease-in-out infinite;
+}
+
+/* === Problem Stats === */
+.problem-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  padding: 0.75rem 0;
+}
+
+.problem-stats .stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.problem-stats .stat-value {
+  font-family: var(--font-mono);
+  font-size: 1.8rem;
+  font-weight: 700;
+  min-width: 3ch;
+  text-align: center;
+}
+
+.stat-captured .stat-value {
+  color: var(--pink-bright);
+}
+
+.stat-received .stat-value {
+  color: var(--purple-bright);
+}
+
+.problem-stats .stat-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.problem-stats .stat-vs {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--text-dim);
+}
+
+/* === Problem Annotation === */
+.problem-annotation {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  text-align: center;
+  min-height: 1.5em;
+  transition: opacity 0.4s ease;
+}
+
+.problem-annotation.ann-fading {
+  opacity: 0;
+}
+
+/* === Problem Hook === */
+.problem-hook {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  margin-top: 2rem;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+/* === Problem CTA — links out to architecture page === */
+.problem-cta {
+  text-align: center;
+  margin-top: 1.25rem;
+}
+
+.problem-cta a {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  color: var(--purple-bright);
+  text-decoration: none;
+  padding: 0.6rem 1.25rem;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 6px;
+  background: rgba(168, 85, 247, 0.05);
+  transition:
+    border-color var(--transition),
+    background var(--transition),
+    color var(--transition),
+    transform var(--transition);
+}
+
+.problem-cta a:hover {
+  border-color: var(--purple);
+  background: rgba(168, 85, 247, 0.12);
+  color: var(--pink-bright);
+  transform: translateY(-2px);
+}
+
+/* === Animations === */
+@keyframes camera-flash {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

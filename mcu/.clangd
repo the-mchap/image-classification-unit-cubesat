@@ -1,0 +1,22 @@
+CompileFlags:
+  Remove:
+    - "-x"
+    - "-xc"
+    - "-std=*"
+  Add:
+    - "-xc++"
+    - "-std=gnu++14"
+    - "-I."
+    - "-Iinclude"
+    - "-Iinclude/clangd_stubs"
+    - "-include"
+    - "lsp_compat.h"
+    - "-include"        # New: Force include globals.h for all files
+    - "globals.h"       # This simulates the unity build context
+    - "-D__PCH__"
+    - "-D__clangd__"
+
+Diagnostics:
+  Suppress:
+    - "pp_invalid_directive"   # CCS directives like #use / #pin_select
+    - "drv_unknown_argument"

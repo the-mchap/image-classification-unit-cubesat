@@ -1,0 +1,46 @@
+CLAUDE.md
+__pycache__/
+*.pyc
+
+# sbc subpath and files to ignore
+sbc/CLAUDE.md
+sbc/storage
+sbc/modules/debug_units
+sbc/.virtual
+sbc/benchmarks/118.jpg
+sbc/benchmarks/119.jpg
+sbc/sbc_icu.log
+sbc/benchmarks/plotter.py
+sbc/**/*.so
+sbc/docs/build/
+sbc/docs/sbc_icu.log
+sbc/.former_claude.md
+
+# mcu subpath and files to ignore
+mcu/CLAUDE.md
+mcu/ccsc_options.txt
+mcu/compile_flags.txt
+mcu/local_devices
+mcu/local_drivers
+mcu/docs
+mcu/lsp_compat.h
+mcu/include/clangd_stubs/
+mcu/term_debug/
+mcu/node_modules/
+mcu/build/
+mcu/*.o
+mcu/*.osym
+mcu/*.err
+mcu/*.hex
+mcu/*.lst
+mcu/*.sym
+mcu/*.cof
+mcu/*.cod
+mcu/*.pjt
+mcu/*.esym
+mcu/*.xsym
+mcu/.former_claude.md
+
+# docs_site subpath and files to ignore
+docs_site/.former_claude.md
+docs_site/CLAUDE.md

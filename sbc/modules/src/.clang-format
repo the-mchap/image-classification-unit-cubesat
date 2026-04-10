@@ -1,0 +1,45 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+Standard: Latest
+
+# --- Space-Grade & Robustness Quirks ---
+
+# Disallow short blocks on a single line for maximum clarity and easier debugging/tracing
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: false
+
+# Ensure template declarations are always on their own line
+AlwaysBreakTemplateDeclarations: Yes
+
+# Avoid "bin packing" to make diffs cleaner and easier to review
+BinPackParameters: false
+BinPackArguments: false
+
+# Pointer alignment (Matches project convention: 'uint8_t *data')
+PointerAlignment: Right
+
+# Alignment for readability
+AlignAfterOpenBracket: Align
+AlignTrailingComments: true
+
+# Braces follow the modern 'Attach' style but with strict single-line disallowance
+BreakBeforeBraces: Attach
+
+# Includes management
+IncludeBlocks: Regroup
+SortIncludes: true
+
+# Documentation & Cleanliness
+FixNamespaceComments: true
+ReflowComments: true
+
+# Penalize wrapping to keep logic on fewer lines where possible without exceeding ColumnLimit
+PenaltyBreakBeforeFirstCallParameter: 100
+...

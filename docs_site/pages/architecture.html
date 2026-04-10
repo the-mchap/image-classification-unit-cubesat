@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ICU — Architecture</title>
+    <link rel="stylesheet" href="../styles/styles.css" />
+    <link rel="stylesheet" href="../styles/architecture.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400..700;1,400..700&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="../scripts/script.js" defer></script>
+    <script src="../scripts/architecture.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <nav>
+        <a class="logo" href="../index.html">ICU</a>
+        <ul class="nav-links">
+          <li><a href="../index.html#problem">Challenge</a></li>
+          <li><a href="#hardware">Hardware</a></li>
+          <li><a href="#operations">Operations</a></li>
+          <li><a href="../index.html#about">About</a></li>
+          <li class="nav-dropdown">
+            <a href="#" class="nav-dropdown-toggle">Docs</a>
+            <ul class="nav-dropdown-menu">
+              <li><a href="../mcu/index.html">MCU Reference</a></li>
+              <li><a href="../sbc/index.html">SBC Reference</a></li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <h1>Architecture</h1>
+        <p>
+          How the ICU is built, and how its subsystems coordinate to turn raw
+          captures into meaningful downlinks.
+        </p>
+      </section>
+
+      <section class="diagram-section" id="hardware">
+        <h2>Hardware Architecture</h2>
+        <p class="section-sub">// system overview</p>
+
+        <div class="diagram-container">
+          <svg
+            class="hw-diagram"
+            viewBox="0 0 800 520"
+            xmlns="http://www.w3.org/2000/svg"
+            role="img"
+            aria-label="ICU hardware architecture diagram showing MCU, SBC, camera, and ground station"
+          >
+            <defs>
+              <!-- Flow animation paths (consumed by JS) -->
+              <path id="path-earth-mcu" d="M 280 90 L 280 200" />
+              <path id="path-mcu-earth" d="M 300 200 L 300 90" />
+              <path id="path-mcu-sbc" d="M 370 300 L 470 300" />
+              <path id="path-sbc-mcu" d="M 470 320 L 370 320" />
+              <path id="path-cam-sbc" d="M 570 420 L 570 360" />
+            </defs>
+
+            <!-- Ground Station -->
+            <g class="component-box" data-component="earth">
+              <rect
+                class="component-bg earth-bg"
+                x="190"
+                y="30"
+                width="200"
+                height="60"
+              />
+              <text class="label-main" x="290" y="58">Ground Station</text>
+              <text class="label-sub" x="290" y="74">Earth</text>
+            </g>
+
+            <!-- Earth <-> MCU connections -->
+            <g class="connections">
+              <line
+                class="conn-line conn-purple"
+                x1="260"
+                y1="90"
+                x2="260"
+                y2="200"
+              />
+              <line
+                class="conn-line conn-purple"
+                x1="320"
+                y1="90"
+                x2="320"
+                y2="200"
+              />
+              <text
+                class="conn-label"
+                x="248"
+                y="150"
+                transform="rotate(-90, 248, 150)"
+              >
+                UL
+              </text>
+              <text
+                class="conn-label"
+                x="332"
+                y="150"
+                transform="rotate(-90, 332, 150)"
+              >
+                DL
+              </text>
+            </g>
+
+            <!-- ICU Boundary -->
+            <rect
+              class="icu-boundary"
+              x="140"
+              y="185"
+              width="560"
+              height="300"
+            />
+            <text class="label-tag" x="420" y="206">
+              Image Classification Unit
+            </text>
+
+            <!-- MCU -->
+            <g class="component-box component-mcu" data-component="mcu">
+              <rect
+                class="component-bg mcu-bg"
+                x="190"
+                y="240"
+                width="170"
+                height="120"
+              />
+              <text class="label-main" x="275" y="290">MCU</text>
+              <text class="label-sub" x="275" y="310">Comms &amp; Control</text>
+              <circle class="power-dot power-dot-mcu" x="210" cy="262" />
+              <text class="label-tag" x="247" y="266">ultra-low power</text>
+            </g>
+
+            <!-- MCU <-> SBC connections -->
+            <g class="connections">
+              <line
+                class="conn-line conn-pink"
+                x1="360"
+                y1="295"
+                x2="470"
+                y2="295"
+              />
+              <line
+                class="conn-line conn-pink"
+                x1="360"
+                y1="315"
+                x2="470"
+                y2="315"
+              />
+              <text class="conn-label" x="415" y="290">DATA</text>
+              <text class="conn-label" x="415" y="330">CMD</text>
+            </g>
+
+            <!-- SBC (Raspberry Pi) -->
+            <g class="component-box component-sbc" data-component="sbc">
+              <rect
+                class="component-bg sbc-bg"
+                x="470"
+                y="240"
+                width="200"
+                height="120"
+              />
+              <text class="label-main" x="570" y="290">SBC</text>
+              <text class="label-sub" x="570" y="310">Raspberry Pi</text>
+              <circle class="power-dot power-dot-sbc" cx="490" cy="262" />
+              <text class="label-tag" x="530" y="266">power on demand</text>
+            </g>
+
+            <!-- Camera -> SBC connection -->
+            <g class="connections">
+              <line
+                class="conn-line conn-dim"
+                x1="570"
+                y1="360"
+                x2="570"
+                y2="420"
+              />
+              <text class="conn-label" x="585" y="395">CSI</text>
+            </g>
+
+            <!-- Camera Module -->
+            <g class="component-box" data-component="camera">
+              <rect
+                class="component-bg cam-bg"
+                x="500"
+                y="420"
+                width="140"
+                height="55"
+              />
+              <circle class="lens-outer" cx="540" cy="447" />
+              <circle class="lens-inner" cx="540" cy="447" />
+              <text class="label-main label-sm" x="595" y="444">Camera</text>
+              <text class="label-sub label-sm" x="595" y="458">Module</text>
+            </g>
+
+            <!-- SBC function badge -->
+            <g class="badge badge-pink">
+              <rect class="badge-bg" x="488" y="330" width="80" height="18" />
+              <text class="badge-label" x="528" y="343">ML INFER</text>
+            </g>
+
+            <!-- MCU function badge -->
+            <g class="badge badge-purple">
+              <rect class="badge-bg" x="208" y="330" width="80" height="18" />
+              <text class="badge-label" x="248" y="343">UL/DL PKT</text>
+            </g>
+          </svg>
+
+          <!-- Info panel (grid cell, right column) -->
+          <div class="info-panel" id="hw-info">
+            <p class="info-prompt">Hover or tap a component</p>
+            <div class="info-content">
+              <h4 class="info-title"></h4>
+              <p class="info-desc"></p>
+              <div class="info-specs"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="diagram-section" id="operations">
+        <h2>Operational States</h2>
+        <p class="section-sub">// state machine</p>
+
+        <div class="diagram-container">
+          <!-- Info panel (grid cell, left column) -->
+          <div class="info-panel" id="sm-info">
+            <p class="info-prompt">Hover or tap a state</p>
+            <div class="info-content">
+              <h4 class="info-title"></h4>
+              <p class="info-desc"></p>
+              <div class="info-specs"></div>
+            </div>
+          </div>
+
+          <svg
+            class="sm-diagram"
+            viewBox="0 0 800 400"
+            xmlns="http://www.w3.org/2000/svg"
+            role="img"
+            aria-label="ICU operational state machine showing IDLE, CAPTURE, DOWNLINK, and PURGE states"
+          >
+            <defs>
+              <!-- Arrow markers (geometry only, styled via CSS) -->
+              <marker
+                id="sm-arrow-cmd"
+                markerWidth="8"
+                markerHeight="6"
+                refX="7"
+                refY="3"
+                orient="auto"
+              >
+                <path class="arrow-fill-cmd" d="M 0 0 L 8 3 L 0 6 Z" />
+              </marker>
+              <marker
+                id="sm-arrow-done"
+                markerWidth="8"
+                markerHeight="6"
+                refX="7"
+                refY="3"
+                orient="auto"
+              >
+                <path class="arrow-fill-done" d="M 0 0 L 8 3 L 0 6 Z" />
+              </marker>
+
+              <!-- Flow paths for JS animation -->
+              <path id="sm-idle-capture" d="M 260 175 Q 400 40 540 65" />
+              <path id="sm-idle-downlink" d="M 260 195 Q 400 165 540 195" />
+              <path id="sm-idle-purge" d="M 260 220 Q 400 355 540 335" />
+              <path id="sm-capture-idle" d="M 540 80 Q 360 15 260 185" />
+              <path id="sm-downlink-idle" d="M 540 210 Q 400 240 260 205" />
+              <path id="sm-purge-idle" d="M 540 345 Q 360 385 260 215" />
+            </defs>
+
+            <!-- IDLE state (home) -->
+            <g class="state-box state-idle" data-state="idle">
+              <rect
+                class="state-bg state-bg-primary"
+                x="100"
+                y="155"
+                width="160"
+                height="90"
+              />
+              <text class="state-label" x="180" y="195">IDLE</text>
+              <text class="state-sub" x="180" y="215">MCU listening</text>
+            </g>
+
+            <!-- CAPTURE state -->
+            <g class="state-box" data-state="capture">
+              <rect
+                class="state-bg state-bg-pink"
+                x="540"
+                y="30"
+                width="160"
+                height="70"
+              />
+              <text class="state-label" x="620" y="62">CAPTURE</text>
+              <text class="state-sub" x="620" y="78">Photo + Inference</text>
+            </g>
+
+            <!-- DOWNLINK state -->
+            <g class="state-box" data-state="downlink">
+              <rect
+                class="state-bg state-bg-accent"
+                x="540"
+                y="165"
+                width="160"
+                height="70"
+              />
+              <text class="state-label" x="620" y="197">DOWNLINK</text>
+              <text class="state-sub" x="620" y="213">Transmit to Earth</text>
+            </g>
+
+            <!-- PURGE state -->
+            <g class="state-box" data-state="purge">
+              <rect
+                class="state-bg state-bg-accent"
+                x="540"
+                y="300"
+                width="160"
+                height="70"
+              />
+              <text class="state-label" x="620" y="332">PURGE</text>
+              <text class="state-sub" x="620" y="348">Clear storage</text>
+            </g>
+
+            <!-- Forward transitions (commands) -->
+            <g class="transitions">
+              <path
+                class="transition-line transition-cmd"
+                d="M 260 175 Q 400 40 540 65"
+              />
+              <path
+                class="transition-line transition-cmd"
+                d="M 260 195 Q 400 165 540 195"
+              />
+              <path
+                class="transition-line transition-cmd"
+                d="M 260 220 Q 400 355 540 335"
+              />
+            </g>
+
+            <!-- Return transitions (done) -->
+            <g class="transitions">
+              <path
+                class="transition-line transition-done"
+                d="M 540 80 Q 360 15 260 185"
+              />
+              <path
+                class="transition-line transition-done"
+                d="M 540 210 Q 400 240 260 205"
+              />
+              <path
+                class="transition-line transition-done"
+                d="M 540 345 Q 360 385 260 215"
+              />
+            </g>
+
+            <!-- Transition labels -->
+            <text class="transition-label" x="385" y="90">cmd: capture</text>
+            <text class="transition-label" x="395" y="178">cmd: downlink</text>
+            <text class="transition-label" x="385" y="310">cmd: purge</text>
+            <text class="transition-label-done" x="330" y="40">done</text>
+            <text class="transition-label-done" x="400" y="232">done</text>
+            <text class="transition-label-done" x="330" y="380">done</text>
+          </svg>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p class="footer-credit">
+        UI inspired by
+        <a href="https://hypr.land/" target="_blank" rel="noopener noreferrer"
+          >Hyprland</a
+        >
+      </p>
+      <p id="footer-quote"></p>
+    </footer>
+  </body>
+</html>

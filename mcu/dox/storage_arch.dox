@@ -1,0 +1,142 @@
+/**
+ * @page storage_arch Storage Architecture
+ *
+ * @tableofcontents
+ *
+ * @section sa_overview Overview
+ *
+ * The ICU manages a 128 MiB dual-die SPI flash (LFM). The flash is
+ * partitioned into three management sections at the bottom and a large
+ * data region above (see @ref memory_map for exact boundaries):
+ *
+ * @code
+ *  0x0000      +----------------------+
+ *              |  DATA_STAT (512 B)   |  One byte per slot: DataState_e
+ *  0x0200      +----------------------+
+ *              |  ADDR_PTR (3.5 KiB)  |  Address pointers (reserved)
+ *  0x1000      +----------------------+
+ *              |  IDX_ENTRY (4 KiB)   |  Entry_s pairs (start + end)
+ *  0x2000      +----------------------+
+ *              |                      |
+ *              |    DATA (~128 MiB)   |  Bulk image storage
+ *              |                      |
+ *  0x07FF_FFFF +----------------------+
+ * @endcode
+ *
+ * @section sa_index Index System
+ *
+ * Each image occupies one **slot**. A slot consists of:
+ *
+ * 1. A @ref DataState_e byte in the state map (@ref DATA_STAT_1ST ..
+ *    @ref DATA_STAT_END).
+ * 2. An @ref Entry_s (8 bytes: start + end address) in the index
+ *    entry region (@ref IDX_ENTRY_1ST .. @ref IDX_ENTRY_END).
+ *
+ * The slot address in the state map maps 1:1 to its index entry via
+ * @ref data_state_to_index_entry.
+ *
+ * @subsection sa_lifecycle Data State Lifecycle
+ *
+ * Flash bits can only be cleared (1 -> 0) without a full sector erase.
+ * The @ref DataState_e values exploit this to allow progressive
+ * tombstoning by overwriting the same byte:
+ *
+ * @dot
+ * digraph DataState {
+ *     rankdir=TB; node [shape=box, style=rounded];
+ *     UNTOUCHED    [label="UNTOUCHED\n0xFF"];
+ *     FULL_DATA    [label="FULL_DATA\n0x7E"];
+ *     HEAD_GARBAGE [label="HEAD_GARBAGE\n0x7C"];
+ *     TAIL_GARBAGE [label="TAIL_GARBAGE\n0x3E"];
+ *     SHRUNKEN     [label="SHRUNKEN\n0x3C"];
+ *     DELETED      [label="DELETED\n0x00"];
+ *
+ *     UNTOUCHED    -> FULL_DATA    [label="write"];
+ *     FULL_DATA    -> HEAD_GARBAGE [label="head erased"];
+ *     FULL_DATA    -> TAIL_GARBAGE [label="tail erased"];
+ *     HEAD_GARBAGE -> SHRUNKEN     [label="tail also erased"];
+ *     TAIL_GARBAGE -> SHRUNKEN     [label="head also erased"];
+ *     SHRUNKEN     -> DELETED      [label="fully erased"];
+ *     FULL_DATA    -> DELETED      [label="fully erased"];
+ * }
+ * @enddot
+ *
+ * @see DataState_e, write_tombstone, index_manager.c
+ *
+ * @subsection sa_gc Lazy Garbage Collection
+ *
+ * Tombstoned entries are not immediately reclaimed. Instead,
+ * @ref is_tombstone_threshold monitors the tombstone count and triggers
+ * a compaction pass when it exceeds the internal threshold.
+ *
+ * During deletion, @ref deletion_bounds_adjustment walks all active
+ * entries to extend the erase range and protect neighbors.
+ * @ref update_index_after_erase then applies the appropriate tombstone
+ * transitions (lazy, full, or partial GC) to each affected slot.
+ *
+ * @section sa_space Space Allocation
+ *
+ * @ref get_available_address uses a two-strategy approach:
+ *
+ * 1. **Boundary check** -- tries the address immediately after the
+ *    last known entry. If the gap is large enough, returns instantly.
+ * 2. **Full scan** -- walks the sorted index looking for the first
+ *    inter-entry gap that fits the requested size.
+ *
+ * @see space_finder.c, look_for_space_at_boundaries, scan_index_for_gap
+ *
+ * @section sa_erase Tiered Erase Strategy
+ *
+ * @ref erase_data orchestrates a five-phase erasure that maximizes
+ * throughput by using the largest aligned sector size at each step:
+ *
+ * | Phase | Sector Size | Purpose                                      |
+ * |-------|-------------|----------------------------------------------|
+ * | 1     | 4 KiB       | Align to 32 KiB boundary.                    |
+ * | 2     | 32 KiB      | Align to 64 KiB boundary.                    |
+ * | 3     | 64 KiB      | Bulk erase (widest span).                    |
+ * | 4     | 32 KiB      | Cleanup (promotion disabled).                |
+ * | 5     | 4 KiB       | Final cleanup (promotion disabled).          |
+ *
+ * @see eraser.c, erase_pass
+ *
+ * @section sa_dma DMA Pipeline
+ *
+ * The @ref pipeline_transfer function copies images from LFM to OBC
+ * flash using a double-buffered DMA pipeline:
+ *
+ * - **Buffer A** is being DMA'd to OBC flash over SPI1.
+ * - **Buffer B** is simultaneously filled from LFM over SPI2.
+ * - On DMA completion (SSP1 ISR), buffers swap and the cycle repeats.
+ *
+ * @dot
+ * digraph PipeState {
+ *     rankdir=LR; node [shape=box, style=rounded];
+ *     IDLE          -> DMA_ACTIVE    [label="fire_dma()"];
+ *     DMA_ACTIVE    -> FLASH_WRITING [label="SSP1 ISR\n(bytes left)"];
+ *     DMA_ACTIVE    -> DONE          [label="SSP1 ISR\n(total==0)"];
+ *     FLASH_WRITING -> READY         [label="WIP=0 &&\nbuf_ready"];
+ *     FLASH_WRITING -> ERROR         [label="watchdog\ntimeout"];
+ *     READY         -> DMA_ACTIVE    [label="fire_dma()"];
+ * }
+ * @enddot
+ *
+ * Timer3 drives WIP polling from foreground context (never from ISR)
+ * to avoid SPI re-entrancy.
+ *
+ * @see image_transfer.c, image_transfer.h
+ *
+ * @section sa_write Write Paths
+ *
+ * Three write paths exist, each for a different context:
+ *
+ * | Function                  | Bus  | Blocking? | Use case             |
+ * |---------------------------|------|-----------|----------------------|
+ * | @ref flash_write          | SPI2 | Yes (CPU) | Index/state updates  |
+ * | @ref flash_write_cpu_free | SPI2 | No        | Bulk LFM writes      |
+ * | @ref obc_flash_write_dma  | SPI1 | DMA       | LFM-to-OBC transfers |
+ *
+ * All writes handle page alignment internally. The first write is
+ * shortened to fit within the current page boundary to avoid
+ * page-wrap corruption.
+ */

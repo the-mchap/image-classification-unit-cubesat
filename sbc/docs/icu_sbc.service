@@ -1,0 +1,25 @@
+[Unit]
+Description=ICU Image Classification Unit Service
+After=network.target
+
+[Service]
+# The 'notify' type expects sd_notify("READY=1") or WATCHDOG=1 pings.
+Type=simple
+ExecStart=/usr/bin/python3 /home/jj/ICU/sbc_icu/main.py
+WorkingDirectory=/home/jj/ICU/sbc_icu
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+
+# --- Watchdog Configuration ---
+# If systemd doesn't hear "WATCHDOG=1" within 30s, it restarts ICU.
+WatchdogSec=30s
+
+# --- Space-Grade Reboot Strategy ---
+# If the service fails to start or keeps crashing, reboot the Pi.
+StartLimitIntervalSec=60
+StartLimitBurst=3
+StartLimitAction=reboot
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,103 @@
+/**
+ * @mainpage ICU Firmware Documentation
+ *
+ * @section intro What is the ICU?
+ *
+ * The **Imaging Control Unit** (ICU) is a PIC18F67J94-based embedded
+ * controller that sits between the On-Board Computer (OBC) and a
+ * Raspberry Pi (RPi/SBC) in a CubeSat payload. It manages:
+ *
+ * - **Image storage** -- photos captured by the RPi are written to a
+ *   128 MiB dual-die SPI flash (Local Flash Memory / LFM).
+ * - **Image transfer** -- on OBC request, images are bulk-copied from
+ *   LFM to OBC flash via a double-buffered DMA pipeline.
+ * - **Power management** -- the MCU controls the RPi power rail and
+ *   orchestrates graceful shutdown sequences.
+ * - **Command routing** -- UART frames from OBC, RPi, and (in debug
+ *   builds) a serial terminal are parsed and dispatched to task
+ *   handlers.
+ *
+ * @section hw Hardware Block Diagram
+ *
+ * @code
+ *  +---------+     UART2      +----------------+     SPI1      +----------+
+ *  |   OBC   | <-- 9600 bd -> |                | <-----------> | OBC FM   |
+ *  +---------+                |   PIC18F67J94  |               +----------+
+ *                             |     (ICU MCU)  |
+ *  +---------+     UART3      |                |     SPI2      +----------+
+ *  |   RPi   | <- 115200 bd ->|                | <-----------> |   LFM    |
+ *  +---------+                |                |               | (128 MiB)|
+ *       ^                     +-------+--------+               +----------+
+ *       |                         |       |
+ *     RPI_EN                    MUX_EN  MUX_S
+ *   (power rail)              (SPI2 bus sharing:
+ *                              MCU <-> RPi select)
+ * @endcode
+ *
+ * The MUX gates SPI2 access: either the MCU or the RPi owns the LFM
+ * bus at any given time, never both.
+ *
+ * @section arch Firmware Architecture
+ *
+ * The firmware is a classic **super-loop** architecture with
+ * interrupt-driven UART reception:
+ *
+ * 1. @ref setup -- GPIO, timers, interrupts, flash SPI mode.
+ * 2. Main loop polls each channel's @ref Dataframe_s flag.
+ * 3. Complete frames are dispatched by @ref frame_parsing to the
+ *    appropriate task handler.
+ * 4. ISRs handle byte-level UART Rx, DMA completion, and timer ticks.
+ *
+ * @section modules Module Map
+ *
+ * | Module            | Group             | Purpose                                   |
+ * |-------------------|-------------------|-------------------------------------------|
+ * | globals.h         | @ref globals      | Types, constants, pin map, peripherals    |
+ * | logger.h          | @ref logger       | Compile-time switchable LOG macro          |
+ * | flash_interface   | @ref driver_flash | SPI flash read/write/erase (LFM + OBCFM) |
+ * | uart_interface    | @ref driver_uart  | UART ISRs, Tx/Rx, frame validation        |
+ * | crc, conversions  | @ref protocol     | CRC-16, byte-order helpers                |
+ * | task_helper       | @ref protocol     | Frame construction, ACK/NACK, extraction  |
+ * | obc_command       | @ref protocol     | OBC command enums (Rx + Tx)               |
+ * | rpi_command       | @ref protocol     | RPi command enums (Rx + Tx)               |
+ * | index_manager     | @ref storage      | Index table, tombstones, lazy GC          |
+ * | metadata          | @ref storage      | EXIF UserComment extraction               |
+ * | space_finder      | @ref storage      | Free-space allocation via gap scanning    |
+ * | eraser            | @ref storage      | Tiered flash erase (4K/32K/64K)           |
+ * | image_transfer    | @ref storage      | Double-buffered DMA pipeline              |
+ * | quick_sorter      | @ref storage      | Iterative Quick Sort for index entries    |
+ * | parser            | @ref app          | Central command router                    |
+ * | setup             | @ref app          | Power-on initialization                   |
+ * | obc_tasks         | @ref app          | OBC command handlers                      |
+ * | rpi_tasks         | @ref app          | RPi command handlers                      |
+ * | dbg_tasks         | @ref app          | Debug terminal handlers (DEBUG_MODE only) |
+ *
+ * @section build Building
+ *
+ * The project uses the CCS C Compiler executed via Wine on Linux:
+ *
+ * @code{.sh}
+ * make clean && make
+ * @endcode
+ *
+ * All `.c` files are `#include`d into `main.c` as a single compilation
+ * unit (CCS linking strategy). The include order in `main.c` is
+ * load-bearing -- do not rearrange it.
+ *
+ * @section docs Generating Documentation
+ *
+ * @code{.sh}
+ * doxygen Doxyfile
+ * @endcode
+ *
+ * Output lands in `./docs/html/`. Requires Graphviz for `@dot`
+ * diagrams (`pacman -S graphviz`).
+ *
+ * @section pages Further Reading
+ *
+ * - @subpage protocol_spec -- UART frame format, command sets, CRC.
+ * - @subpage storage_arch -- Flash organization, index lifecycle, DMA pipeline.
+ * - @subpage memory_map -- Full flash address map with section boundaries.
+ *
+ * @author [the-mchap](https://github.com/the-mchap)
+ */

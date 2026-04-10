@@ -1,0 +1,94 @@
+/**
+ * @page memory_map Flash Memory Map
+ *
+ * @tableofcontents
+ *
+ * @section mm_device Device
+ *
+ * - **Type:** 128 MiB SPI NOR flash (dual-die).
+ * - **Page size:** 256 bytes (@ref PAGE_SIZE).
+ * - **Erase granularity:** 4 KiB, 32 KiB, 64 KiB sectors, or full die.
+ * - **Buses:** SPI2 (LFM, on-board) and SPI1 (OBCFM, OBC-side).
+ *
+ * @section mm_layout Section Layout
+ *
+ * All addresses are 4-byte (@ref ADDRESS_SIZE). The management
+ * sections occupy the first 8 KiB; bulk data fills the rest.
+ *
+ * @code
+ *   Address         Size       Section         Enum Constants
+ *  ──────────────────────────────────────────────────────────
+ *  0x0000_0000     512 B      DATA_STAT       DATA_STAT_1ST .. DATA_STAT_END
+ *  0x0000_0200     3.5 KiB    ADDR_PTR        ADDR_PTR_1ST  .. ADDR_PTR_END
+ *  0x0000_1000     4 KiB      IDX_ENTRY       IDX_ENTRY_1ST .. IDX_ENTRY_END
+ *  0x0000_2000     ~128 MiB   DATA            DATA_1ST      .. DATA_END
+ *  0x07FF_FFFF     --         (end of flash)
+ * @endcode
+ *
+ * @see FlashSection_e for the boundary constants.
+ *
+ * @section mm_stat DATA_STAT -- State Map (0x0000 .. 0x01FF)
+ *
+ * One byte per image slot. Each byte holds a @ref DataState_e value
+ * that tracks the slot's lifecycle without requiring a sector erase:
+ *
+ * | Value  | State            | Meaning                               |
+ * |--------|------------------|---------------------------------------|
+ * | `0xFF` | UNTOUCHED        | Erased / never written (scan stop).   |
+ * | `0x7E` | FULL_DATA        | Fully valid data.                     |
+ * | `0x7C` | HEAD_GARBAGE     | Head erased, tail valid.              |
+ * | `0x3E` | TAIL_GARBAGE     | Head valid, tail erased.              |
+ * | `0x3C` | SHRUNKEN         | Both head and tail are garbage.       |
+ * | `0x00` | DELETED          | Full tombstone -- dead data.          |
+ * | `0x55` | IDX_COMPACT      | Compaction garbage.                   |
+ * | `0x0F` | ERROR            | Unrecognised state.                   |
+ *
+ * Maximum slot count: **512** (one byte per slot in 512 bytes).
+ *
+ * @section mm_ptr ADDR_PTR -- Address Pointers (0x0200 .. 0x0FFF)
+ *
+ * Reserved for address pointer storage. Currently used by the write
+ * pipeline to track the last-written address for OBC pointer-based
+ * writes (@ref obc_write_pointer).
+ *
+ * @section mm_idx IDX_ENTRY -- Index Entries (0x1000 .. 0x1FFF)
+ *
+ * Each entry is an @ref Entry_s struct: two 4-byte addresses
+ * (start + end), totalling 8 bytes per slot (@ref ENTRY_SIZE).
+ *
+ * @code
+ *  Offset within entry:  [0..3]       [4..7]
+ *                        start addr   end addr
+ * @endcode
+ *
+ * Maximum entries: 4096 / 8 = **512** (matches DATA_STAT slot count).
+ *
+ * @section mm_data DATA -- Bulk Storage (0x2000 .. 0x07FF_FFFF)
+ *
+ * JPEG images and other payloads. Capacity:
+ *
+ * - Total: 0x07FF_FFFF - 0x2000 + 1 = **134,209,536 bytes** (~128 MiB).
+ * - Typical JPEG (2 MP, compressed): ~500 KiB.
+ * - Approximate capacity: **~260 images** (varies with compression).
+ *
+ * Data is written page-aligned. The first write to a non-aligned
+ * destination is shortened to fit within the current 256-byte page
+ * boundary (see @ref pagealign_pass).
+ *
+ * @section mm_erase Erase Sector Alignment
+ *
+ * Flash erase commands operate on fixed boundaries:
+ *
+ * | Command    | Opcode | Sector Size | Alignment Boundary |
+ * |------------|--------|-------------|--------------------|
+ * | ERASE_4KB  | `0x20` | 4,096 B     | 0x1000             |
+ * | ERASE_32KB | `0x52` | 32,768 B    | 0x8000             |
+ * | ERASE_64KB | `0xD8` | 65,536 B    | 0x10000            |
+ * | ERASE_DIE  | `0xC4` | Full die    | --                 |
+ *
+ * The tiered erase strategy in @ref erase_data promotes to larger
+ * sector sizes as alignment permits, then relegates back down for
+ * the tail.
+ *
+ * @see FlashEraseCommand_e, eraser.c
+ */

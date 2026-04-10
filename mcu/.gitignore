@@ -1,0 +1,25 @@
+ccsc_options.txt
+compile_flags.txt
+local_devices
+local_drivers
+docs
+lsp_compat.h
+package-lock.json
+package.json
+include/clangd_stubs/
+term_debug/
+node_modules/
+build/
+
+# MCU build artifacts (per-unit and linker outputs)
+*.o
+*.osym
+*.err
+*.hex
+*.lst
+*.sym
+*.cof
+*.cod
+*.pjt
+*.esym
+*.xsym

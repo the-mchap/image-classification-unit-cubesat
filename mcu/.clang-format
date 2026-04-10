@@ -1,0 +1,150 @@
+---
+Language: C
+BasedOnStyle: Google
+
+# Indentation - 4 spaces for low-level C code
+IndentWidth: 4
+TabWidth: 8
+UseTab: Never
+AccessModifierOffset: -2
+ContinuationIndentWidth: 4
+ConstructorInitializerIndentWidth: 4
+IndentCaseLabels: false
+IndentPPDirectives: None
+IndentWrappedFunctionNames: false
+
+# Brace Style - Allman (braces on their own line)
+BreakBeforeBraces: Allman
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterObjCDeclaration: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeCatch: true
+  BeforeElse: true
+  IndentBraces: false
+
+# Pointer and Reference Alignment - Right style
+PointerAlignment: Right
+DerivePointerAlignment: false
+
+# Column Limit
+ColumnLimit: 90
+
+# Alignment - Keep false for easier diff review
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignEscapedNewlines: Right
+AlignOperands: Align
+AlignTrailingComments: true
+
+# Function and Statement Formatting - Always break for clarity
+AllowShortFunctionsOnASingleLine: None
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowAllParametersOfDeclarationOnNextLine: true
+
+# Spacing
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 2
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: true
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# Include Sorting - Standard C project order
+SortIncludes: false
+IncludeBlocks: Regroup
+IncludeCategories:
+  # System headers (stdio.h, stdlib.h, etc.)
+  - Regex: '^<.*\.h>'
+    Priority: 1
+  # Project headers ("myheader.h")
+  - Regex: '^".*"'
+    Priority: 2
+IncludeIsMainRegex: '(Test)?$'
+
+# Breaking and Wrapping
+BreakBeforeBinaryOperators: None
+BreakBeforeInheritanceComma: false
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+BreakInheritanceList: BeforeColon
+BreakStringLiterals: true
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakAfterReturnType: None
+AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakTemplateDeclarations: Yes
+
+# Bin Packing
+BinPackArguments: true
+BinPackParameters: true
+Cpp11BracedListStyle: true
+
+# Empty Lines and Whitespace - Compact and consistent
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+
+# Comments
+CommentPragmas: '^ IWYU pragma:'
+ReflowComments: true
+
+# Namespaces (not relevant for C, but kept for compatibility)
+CompactNamespaces: false
+FixNamespaceComments: true
+NamespaceIndentation: None
+
+# Penalties for line breaking decisions
+PenaltyBreakAssignment: 2
+PenaltyBreakBeforeFirstCallParameter: 19
+PenaltyBreakComment: 300
+PenaltyBreakFirstLessLess: 120
+PenaltyBreakString: 1000
+PenaltyBreakTemplateDeclaration: 10
+PenaltyExcessCharacter: 1000000
+PenaltyReturnTypeOnItsOwnLine: 60
+
+# Miscellaneous
+DisableFormat: false
+ExperimentalAutoDetectBinPacking: false
+Standard: Latest
+SortUsingDeclarations: true
+
+# Macros
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+ForEachMacros:
+  - foreach
+  - Q_FOREACH
+  - BOOST_FOREACH
+MacroBlockBegin: ''
+MacroBlockEnd: ''
+StatementMacros:
+  - Q_UNUSED
+  - QT_REQUIRE_VERSION
+
+# Objective-C (not relevant for C)
+ObjCBlockIndentWidth: 4
+ObjCSpaceAfterProperty: false
+ObjCSpaceBeforeProtocolList: true
+
+# JavaScript (not relevant for C)
+JavaScriptQuotes: Leave
+JavaScriptWrapImports: true
+...
