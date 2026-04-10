@@ -22,7 +22,11 @@ jobs:
 
       # ── Doxygen (MCU) ──────────────────────────────────────────────
       - name: Install Doxygen and Graphviz
-        run: sudo apt-get update && sudo apt-get install -y doxygen graphviz
+        run: |
+          sudo apt-get update && sudo apt-get install -y graphviz wget
+          wget -q https://github.com/doxygen/doxygen/releases/download/Release_1_16_1/doxygen-1.16.1-linux-x86_64.bin.tar.gz
+          tar xzf doxygen-1.16.1-linux-x86_64.bin.tar.gz
+          sudo cp doxygen-1.16.1/bin/doxygen /usr/local/bin/
 
       - name: Build MCU Doxygen docs
         working-directory: mcu
